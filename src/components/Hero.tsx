@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
-import heroBg from "@/assets/hmg.png";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -26,6 +25,8 @@ const itemVariants: Variants = {
 };
 
 const Hero = () => {
+  const heroBg = "/hero-bg.png";
+
   useEffect(() => {
     const navbar = document.getElementById("navbar");
     if (!navbar) return;
@@ -75,7 +76,7 @@ const Hero = () => {
     <section className="relative min-h-screen flex items-start justify-center overflow-hidden">
       {/* Background */}
       <div
-        className="absolute inset-0 bg-[length:250%] md:bg-cover bg-[center_top] md:bg-[center_top_-120px] bg-no-repeat"
+        className="absolute inset-0 bg-[length:250%] md:bg-cover bg-[center_top] md:bg-[center_top_-80px] bg-no-repeat"
         style={{ backgroundImage: `url(${heroBg})` }}
       />
 
