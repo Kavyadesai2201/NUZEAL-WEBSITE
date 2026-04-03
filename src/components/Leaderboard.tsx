@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 // 🔗 PUT YOUR GOOGLE SHEET ID HERE
 const SHEET_URL =
   "https://docs.google.com/spreadsheets/d/1AGlE17CDk59PW8VqAJZe1gu0bEwqfOhln-Sz6L_s09U/gviz/tq?tqx=out:json&sheet=NUZEAL-POINTS";
+const POLL_INTERVAL_MS = 30000;
 
 type Institute = {
   id: number;
@@ -12,34 +13,86 @@ type Institute = {
   points: number;
 };
 
+type SheetRow = {
+  c?: Array<{
+    v?: string | number | null;
+  }>;
+};
+
+type SheetResponse = {
+  table?: {
+    rows?: SheetRow[];
+  };
+};
+
+const asText = (value: unknown) => {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value);
+  }
+
+  return undefined;
+};
+
 const Leaderboard = () => {
   const [instituteScores, setInstituteScores] = useState<Institute[]>([]);
 
-  //  Fetch data from Google Sheets
+  // Fetch data from Google Sheets with visibility-aware polling.
   useEffect(() => {
-    const fetchData = () => {
-      fetch(SHEET_URL)
-        .then(res => res.text())
-        .then(text => {
-          const json = JSON.parse(text.substring(47).slice(0, -2));
-          const rows = json.table.rows;
+    let isMounted = true;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-          const formatted: Institute[] = rows.map((r: any, index: number) => ({
-            id: index + 1,
-            name: r.c[6]?.v,        // G column (Institute)
-            shortName: r.c[7]?.v,   // H column (Short)
-            points: r.c[8]?.v || 0, // I column (Points)
-          }));
+    const fetchData = async () => {
+      const res = await fetch(SHEET_URL);
+      const text = await res.text();
 
-          setInstituteScores(formatted);
-        });
+      if (!isMounted) return;
+
+      const json = JSON.parse(text.substring(47).slice(0, -2)) as SheetResponse;
+      const rows = json.table?.rows ?? [];
+
+      const formatted: Institute[] = rows.map((r, index: number) => ({
+        id: index + 1,
+        name: asText(r.c?.[6]?.v) ?? '',
+        shortName: asText(r.c?.[7]?.v) ?? '',
+        points: Number(r.c?.[8]?.v) || 0,
+      }));
+
+      setInstituteScores(formatted);
     };
 
-    fetchData();
+    const startPolling = () => {
+      if (intervalId) return;
 
-    //  Auto refresh every 10 seconds
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+      intervalId = setInterval(() => {
+        void fetchData();
+      }, POLL_INTERVAL_MS);
+    };
+
+    const stopPolling = () => {
+      if (!intervalId) return;
+      clearInterval(intervalId);
+      intervalId = null;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchData();
+        startPolling();
+        return;
+      }
+
+      stopPolling();
+    };
+
+    void fetchData();
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   // Sort institutes by points (highest first) — SAME AS BEFORE

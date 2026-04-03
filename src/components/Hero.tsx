@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
+import heroBg from "../assets/bg.png";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -25,8 +26,6 @@ const itemVariants: Variants = {
 };
 
 const Hero = () => {
-  const heroBg = "/hero-bg.png";
-
   useEffect(() => {
     const navbar = document.getElementById("navbar");
     if (!navbar) return;
@@ -73,11 +72,11 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-start justify-center overflow-hidden">
+    <section className="relative min-h-screen flex items-start justify-center overflow-hidden bg-[#f6efe7]">
       {/* Background */}
       <div
         className="absolute inset-0 bg-[length:250%] md:bg-cover bg-[center_top] md:bg-[center_top_-80px] bg-no-repeat"
-        style={{ backgroundImage: `url(${heroBg})` }}
+        style={{ backgroundImage: `linear-gradient(rgba(58, 37, 32, 0.25), rgba(58, 37, 32, 0.25)), url(${heroBg})` }}
       />
 
       {/* Content */}
@@ -85,11 +84,11 @@ const Hero = () => {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center pt-[28vh] md:pt-[32vh]"
+        className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center pt-[18vh] md:pt-[22vh]"
       >
         <motion.div
           variants={itemVariants}
-          className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-20 mt-[clamp(16rem,34vh,22rem)] md:mt-[clamp(12rem,26vh,18rem)] mb-10"
+          className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-20 mt-14 md:mt-20 mb-10"
         >
           <button
             onClick={() => scrollToSection("events")}

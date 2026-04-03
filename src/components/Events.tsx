@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { LucideIcon } from 'lucide-react';
 import {
   Music,
   Palette,
@@ -9,9 +10,51 @@ import {
   FileText,
 } from 'lucide-react';
 
+type EventConfig = {
+  id: string;
+  icon: LucideIcon;
+  title: string;
+  category: string;
+  guidelinePdf: string;
+  sheetId: string;
+  sheetName: string;
+  type: 'normal' | 'fine';
+  subEvents: string[];
+  color: string;
+};
+
+type Participant = {
+  name: string;
+  institute?: string;
+  event?: string;
+  category?: string;
+};
+
+type SheetCell = {
+  v?: string | number | null;
+};
+
+type SheetRow = {
+  c?: SheetCell[];
+};
+
+type SheetResponse = {
+  table?: {
+    rows?: SheetRow[];
+  };
+};
+
+const asText = (value: unknown) => {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value);
+  }
+
+  return undefined;
+};
+
 /* ---------------- EVENTS CONFIG ---------------- */
 
-const events = [
+const events: EventConfig[] = [
   {
     id: 'music',
     icon: Music,
@@ -137,12 +180,12 @@ const formLinks: Record<string, string> = {
 
 const Events = () => {
 
-  const [participants, setParticipants] = useState<any[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [selectedEvent, setSelectedEvent] = useState("");
   const [show, setShow] = useState(false);
 
   const handleGuidelinesClick = (
-    e: React.MouseEvent,
+    e: ReactMouseEvent<HTMLButtonElement>,
     pdfUrl: string
   ) => {
     e.stopPropagation();
@@ -160,22 +203,24 @@ const Events = () => {
     const res = await fetch(url);
     const text = await res.text();
 
-    const json = JSON.parse(text.substring(47).slice(0, -2));
-    const rows = json.table.rows;
+    const json = JSON.parse(text.substring(47).slice(0, -2)) as SheetResponse;
+    const rows = json.table?.rows ?? [];
 
-    const list: any[] = [];
+    const list: Participant[] = [];
 
-    rows.forEach((r: any) => {
-      const c = r.c;
+    rows.forEach((r) => {
+      const c = r.c ?? [];
 
-      const institute = c[2]?.v;
-      const category  = c[3]?.v;
-      const event     = c[4]?.v;
+      const institute = asText(c[2]?.v);
+      const category = asText(c[3]?.v);
+      const event = asText(c[4]?.v);
+
+      if (!event) return;
 
       if (allowedSubEvents.length > 0 && !allowedSubEvents.includes(event)) return;
 
-      const p1 = c[5]?.v;
-      const p2 = c[6]?.v;
+      const p1 = asText(c[5]?.v);
+      const p2 = asText(c[6]?.v);
 
       if (p1) list.push({ name: p1, institute, event, category });
       if (p2) list.push({ name: p2, institute, event, category });
@@ -195,22 +240,22 @@ const Events = () => {
     const res = await fetch(url);
     const text = await res.text();
 
-    const json = JSON.parse(text.substring(47).slice(0, -2));
-    const rows = json.table.rows;
+    const json = JSON.parse(text.substring(47).slice(0, -2)) as SheetResponse;
+    const rows = json.table?.rows ?? [];
 
-    const list: any[] = [];
+    const list: Participant[] = [];
 
-    rows.forEach((r: any) => {
-      const c = r.c;
+    rows.forEach((r) => {
+      const c = r.c ?? [];
 
-      const institute = c[2]?.v;
-      const category  = c[3]?.v;
-      const event     = c[4]?.v;
+      const institute = asText(c[2]?.v);
+      const category = asText(c[3]?.v);
+      const event = asText(c[4]?.v);
 
-      if (!allowedSubEvents.includes(event)) return;
+      if (!event || !allowedSubEvents.includes(event)) return;
 
       for (let i = 5; i <= 9; i++) {
-        const name = c[i]?.v;
+        const name = asText(c[i]?.v);
         if (name) list.push({ name, institute, event, category });
       }
     });
@@ -221,53 +266,52 @@ const Events = () => {
   /* ---------- FETCH CULTURAL SHOWCASE ---------- */
 
   async function fetchCulturalShowcase(
-  sheetId: string,
-  sheetName: string
-) {
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
-  const res = await fetch(url);
-  const text = await res.text();
+    sheetId: string,
+    sheetName: string
+  ) {
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+    const res = await fetch(url);
+    const text = await res.text();
 
-  const json = JSON.parse(text.substring(47).slice(0, -2));
-  const rows = json.table.rows || [];
+    const json = JSON.parse(text.substring(47).slice(0, -2)) as SheetResponse;
+    const rows = json.table?.rows || [];
 
-  const list: any[] = [];
+    const list: Participant[] = [];
 
- rows.slice(1).forEach((r: any) => {
-  const c = r.c;
+    rows.slice(1).forEach((r) => {
+      const c = r.c ?? [];
 
-  const institute = c[1]?.v;
-  const name1 = c[2]?.v;
-  const name2 = c[3]?.v;
+      const institute = asText(c[1]?.v);
+      const name1 = asText(c[2]?.v);
+      const name2 = asText(c[3]?.v);
 
-  if (name1) {
-    list.push({
-      name: name1,
-      institute,
-      event: 'Cultural Showcase',
-      category: 'student',
+      if (name1) {
+        list.push({
+          name: name1,
+          institute,
+          event: 'Cultural Showcase',
+          category: 'student',
+        });
+      }
+
+      if (name2) {
+        list.push({
+          name: name2,
+          institute,
+          event: 'Cultural Showcase',
+          category: 'student',
+        });
+      }
     });
+
+    return list;
   }
-
-  if (name2) {
-    list.push({
-      name: name2,
-      institute,
-      event: 'Cultural Showcase',
-      category: 'student',
-    });
-  }
-});
-
-
-  return list;
-}
 
 
   /* ---------- OPEN PARTICIPANTS ---------- */
 
-  async function openParticipants(eventObj: any) {
-  let list: any[] = [];
+  async function openParticipants(eventObj: EventConfig) {
+  let list: Participant[] = [];
 
   if (eventObj.id === 'cultural-showcase') {
     list = await fetchCulturalShowcase(
@@ -351,7 +395,7 @@ const Events = () => {
               )}
 
               <div className="mt-auto">
-                <a href={formLinks[event.id]} target="_blank"
+                <a href={formLinks[event.id]} target="_blank" rel="noopener noreferrer"
                   className="block mb-3 px-6 py-3 text-center rounded-full bg-[#EAD5C0] hover:scale-[1.02] transition">
                   Register Now →
                 </a>
